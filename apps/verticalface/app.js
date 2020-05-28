@@ -1,4 +1,8 @@
 require("Font8x12").add(Graphics);
+require("Font6x8").add(Graphics);
+
+var BGWidth = 0;
+var BG;
 let HRMstate = false;
 let currentHRM = "CALC";
 
@@ -8,7 +12,7 @@ function drawTimeDate() {
   var h = d.getHours(), m = d.getMinutes(), day = d.getDate(), month = d.getMonth(), weekDay = d.getDay();
 
   var daysOfWeek = ["SUN", "MON", "TUE","WED","THU","FRI","SAT"];
-  var hours = h;
+  var hours = ("0"+h).substr(-2);
   var mins= ("0"+m).substr(-2);
   var date = `${daysOfWeek[weekDay]}|${day}|${("0"+(month+1)).substr(-2)}`;
 
@@ -32,6 +36,7 @@ function drawTimeDate() {
 
 //We will create custom "Widgets" for our face.
 
+//Steps widget
 function drawSteps() {
   //Reset to defaults.
   g.reset();
@@ -44,6 +49,7 @@ function drawSteps() {
   g.drawString("-", 145, 65, true /*clear background*/);
 }
 
+//BP widget
 function drawBPM(on) {
   //Reset to defaults.
   g.reset();
@@ -67,6 +73,7 @@ function drawBPM(on) {
   }
 }
 
+//Battery widget
 function drawBattery() {
   let charge = E.getBattery();
   //Reset to defaults.
@@ -80,6 +87,33 @@ function drawBattery() {
   g.drawString(`${charge}%`, 145, 195, true /*clear background*/);
 }
 
+//Notification widget
+//Text unit.
+function drawBody(notification){
+  //Image data - insert here.
+  //Set body color
+  g.setColor("#dfe6e9");
+  //App icon
+    g.drawImage(require("heatshrink").decompress(atob("mEwxH+AH4A/AH4ATnYAGFdYzlFp4xeFyYwZFqoxYFzIwUFzYwTF9wudGCAufGB4vuF0IwNF/2JxIMKr9fF6AuP6/XGBFf1utMCIuNr4uBGBA6BFxAvXFwgwFNAWzRowvYFwwwCr+zFxgvVFxAAFFxQvUKYqHCFyIvU1q4IFyAvTFwK1BBAgwEFxovKGA+t1oiIGARoDFyovGr5QLxIuOF6QAdF5YwiFxgvwGEAuOGD4uQF+AwcFyQwbFygvYFqovYFy4vVFrAvJBBIAdEkgvOFtIvEF1YvBFtgA/AH4A2A==")), 90, 45 ,{scale : 1.25});
+  //Header
+  g.setFont("6x8",3);
+  g.setFontAlign(0, 0);
+  g.drawString("Author", 120, 130, false);
+  g.setFont("6x8",2);
+  g.drawString("BY", 120, 170, false);
+  g.setFont("6x8",1);
+  g.drawString("This is a draft message here.", 120, 190, false);
+}
+
+function drawBG(width){
+  //Create background
+  if(BGWidth > 240){
+   clearInterval(BG);
+   return drawBody();
+  }
+  g.setColor("#000000");
+  g.fillRect(0, 0, width, 240);
+}
 
 // Clear the screen once, at startup
 g.clear();
@@ -114,8 +148,24 @@ Bangle.on('lcdPower',on=>{
 setWatch(Bangle.showLauncher, BTN2, { repeat: false, edge: "falling" });
 
 Bangle.on('touch', function(button) {
-  if(button == 1 || button == 2){
-    Bangle.showLauncher();
+  if(BG !== undefined){
+    //Reset notification and screen.
+    g.clear(true);
+    BGWidth = 0;
+    drawTimeDate();
+    drawSteps();
+    drawBPM();
+    drawBattery();
+    BG = undefined;
+    secondInterval = setInterval(()=>{
+  drawTimeDate();
+}, 15000);
+  } else {
+    BG = setInterval(()=>{
+     drawBG(BGWidth);
+     BGWidth += 4.8;
+    }, 1);
+    clearInterval(secondInterval);
   }
 });
 
