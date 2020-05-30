@@ -229,6 +229,15 @@ function setCurrentView(view, options){
   }
 }
 
+function sendBattery() {
+    gbSend({ t: "status", bat: E.getBattery() });
+}
+
+function gbSend(message) {
+    Bluetooth.println("");
+    Bluetooth.println(JSON.stringify(message));
+}
+
 function render(options){
   console.log(state);
   if(options === undefined){
@@ -245,6 +254,9 @@ function getMem(){
 
 function setConnectionState(){
   state.connected = !state.connected;
+  if(state.connected){
+    setTimeout(sendBattery, 2000);
+  }
   Bangle.beep();
 }
 
@@ -270,6 +282,8 @@ Bangle.on('lcdPower',on=>{
   }
 });
 
+// Show launcher when middle button pressed
+setWatch(Bangle.showLauncher, BTN2, { repeat: false, edge: "falling" });
 
 //Bluetooth connect and d/c
 NRF.on("connect", setConnectionState);
@@ -291,6 +305,3 @@ global.GB = (event) => {
         break;
     }
 };
-
-// Show launcher when middle button pressed
-setWatch(Bangle.showLauncher, BTN2, { repeat: false, edge: "falling" });
