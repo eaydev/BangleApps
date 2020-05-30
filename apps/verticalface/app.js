@@ -261,6 +261,9 @@ function setConnectionState(){
 
 //Initialise
 setCurrentView("WATCH_FACE");
+Bangle.loadWidgets();
+// Show launcher when middle button pressed
+setWatch(Bangle.showLauncher, BTN2, { repeat: false, edge: "falling" });
 //state.runningProcesses.ramwatch = setInterval(getMem ,1000);
 
 Bangle.on('touch', function(button) {
@@ -280,9 +283,6 @@ Bangle.on('lcdPower',on=>{
     clearProcesses();
   }
 });
-
-// Show launcher when middle button pressed
-setWatch(Bangle.showLauncher, BTN2, { repeat: false, edge: "falling" });
 
 //Bluetooth connect and d/c
 NRF.on("connect", setConnectionState);
