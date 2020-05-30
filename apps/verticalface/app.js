@@ -7,6 +7,7 @@
 require("Font8x12").add(Graphics);
 
 let state = {
+  connected: false,
   theme: "#fbc531",
   currentView: "WATCH_FACE",
   watchOptions: {
@@ -74,6 +75,10 @@ function drawBattery(x, y, align) {
   g.setColor('#bdc3c7');
   g.drawString(`${charge}%`, x, y+25, true /*clear background*/);
 }
+//Drawing Bluetooth
+function drawConnection() {
+  console.log("INSERT HERE.");
+}
 
 
 // View watchface
@@ -127,7 +132,8 @@ const WATCH_FACE = (options) =>{
     let widgets = {
       CHARGE : "drawBattery",
       STEPS : "drawSteps",
-      BPM : "drawBPM"
+      BPM : "drawBPM",
+      BLUETOOTH: "drawConnection"
     };
 
     // These coordinates were derived from left-aligned face.
@@ -158,7 +164,19 @@ const WATCH_FACE = (options) =>{
   return console.log("Clock intitated");
 };
 
-const NOTIFICATION = () =>{
+//Notification watch face
+const NOTIFICATION = (options) =>{
+  let author;
+  let source;
+
+  if(options !== undefined){
+    if(Object.keys(options).includes("body")){
+     console.log(options.body);
+     author = options.body.title;
+     source = (options.body.src).toUpperCase();
+    }
+  }
+
   function drawNotification(x, y){
     g.setColor("#000000");
     g.fillRect(0, 0, x, 240);
@@ -167,13 +185,13 @@ const NOTIFICATION = () =>{
        g.setColor("#ffffff");
        g.setFont("6x8",3);
        g.setFontAlign(0,0);
-       g.drawString("MESSENGER", x-120, y-105, false);
+       g.drawString(source, x-120, y-105, false);
 
        g.reset();
        g.setColor("#b2bec3");
        g.setFont("6x8",2);
        g.setFontAlign(0,0);
-       g.drawString("Adrian", x-120, y-70, false);
+       g.drawString(author, x-120, y-70, false);
        g.fillCircle(120, 220, 5);
     }
   }
@@ -230,6 +248,12 @@ function getMem(){
   console.log(Math.round(process.memory().usage*100/process.memory().total));
 }
 
+function setConnectionState(){
+  state.connected = !state.connected;
+  Bangle.beep();
+  console.log(`Connected: ${state.connected}`);
+}
+
 //Initialise
 setCurrentView("WATCH_FACE");
 //state.runningProcesses.ramwatch = setInterval(getMem ,1000);
@@ -237,10 +261,7 @@ setCurrentView("WATCH_FACE");
 Bangle.on('touch', function(button) {
   if(Bangle.isLCDOn()){
     if(state.runningProcesses.notification === undefined){
-      Bangle.buzz()
-        .then(()=>{
-          setCurrentView("NOTIFICATION", {clear: false});
-        });
+      console.log("Not running");
     } else {
       setCurrentView("WATCH_FACE");
     }
@@ -255,6 +276,22 @@ Bangle.on('lcdPower',on=>{
   }
 });
 
+
+//Bluetooth connect and d/c
+NRF.on("connect", setConnectionState);
+NRF.on("disconnect", setConnectionState);
+
+//Gadgetbridge test.
+global.GB = (event) => {
+  switch (event.t) {
+      case "notify":
+        Bangle.buzz()
+          .then(()=>{
+            setCurrentView("NOTIFICATION", {body: event});
+          });
+        break;
+    }
+};
 
 // Show launcher when middle button pressed
 setWatch(Bangle.showLauncher, BTN2, { repeat: false, edge: "falling" });
