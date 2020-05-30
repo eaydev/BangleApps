@@ -1,6 +1,4 @@
 // TO IMPLEMENT:
-// ON SCREEN OFF STOP CLOCK
-// ON SCREEN ON START CLOCK AGAIN
 // HRM ON ALL VIEWS - BACKGROUND PROCESS AVAILABLE TOO?
 // IMPLEMENT CHARGE ICON
 
@@ -120,6 +118,7 @@ const WATCH_FACE = (options) =>{
     // Drawing the date.
     g.setFont("6x8",2);
     g.drawString(date, date_x, date_y, true /*clear background*/);
+    console.log("Rendering clock");
   }
 
   // WIDGET SEGMENT
@@ -190,20 +189,25 @@ const NOTIFICATION = () =>{
   return console.log("Rendering notification");
 };
 
-
-function setCurrentView(view, options){
+function clearProcesses(){
   //Clearing running processes
   //Resetting clock
   if(state.runningProcesses.clock != undefined){
+    console.log("Clearing clock.");
     clearInterval(state.runningProcesses.clock);
+    state.runningProcesses.clock = undefined;
   }
   //Resetting notif
   if(state.runningProcesses.notification != undefined){
+    console.log("Clearing notification.");
     clearInterval(state.runningProcesses.notification);
     state.runningProcesses.notification = undefined;
     state.notifWidth = 0;
   }
+}
 
+function setCurrentView(view, options){
+  clearProcesses();
   //Render if valid view.
   if (VIEWS.includes(view)){
     state.currentView = view;
@@ -217,7 +221,7 @@ function render(options){
   if(options === undefined){
     g.clear();
   } else if(options.clear === false){
-    console.log("Skip clear");
+    //Skip clear
   }
   return eval(state.currentView)(options);
 }
@@ -231,10 +235,26 @@ setCurrentView("WATCH_FACE");
 //state.runningProcesses.ramwatch = setInterval(getMem ,1000);
 
 Bangle.on('touch', function(button) {
-  if(state.runningProcesses.notification === undefined){
-    Bangle.buzz();
-    setCurrentView("NOTIFICATION", {clear: false});
-  } else {
-    setCurrentView("WATCH_FACE");
+  if(Bangle.isLCDOn()){
+    if(state.runningProcesses.notification === undefined){
+      Bangle.buzz()
+        .then(()=>{
+          setCurrentView("NOTIFICATION", {clear: false});
+        });
+    } else {
+      setCurrentView("WATCH_FACE");
+    }
   }
 });
+
+Bangle.on('lcdPower',on=>{
+  if (on) {
+    render();
+  } else {
+    clearProcesses();
+  }
+});
+
+
+// Show launcher when middle button pressed
+setWatch(Bangle.showLauncher, BTN2, { repeat: false, edge: "falling" });
