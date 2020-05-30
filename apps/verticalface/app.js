@@ -22,7 +22,11 @@ let state = {
     notification: undefined,
     ramwatch: undefined
   },
-  notifWidth: 0
+  notifWidth: 0,
+  notification: {
+    author: undefined,
+    source: undefined
+  }
 };
 
 const VIEWS = [
@@ -165,33 +169,23 @@ const WATCH_FACE = (options) =>{
 };
 
 //Notification watch face
-const NOTIFICATION = (options) =>{
-  let author;
-  let source;
-
-  if(options !== undefined){
-    if(Object.keys(options).includes("body")){
-     console.log(options.body);
-     author = options.body.title;
-     source = (options.body.src).toUpperCase();
-    }
-  }
+const NOTIFICATION = () =>{
 
   function drawNotification(x, y){
     g.setColor("#000000");
     g.fillRect(0, 0, x, 240);
     if(x >= 240){
-       g.drawImage(require("heatshrink").decompress(atob("mEwxH+AH4A/AH4ATnYAGFdYzlFp4xeFyYwZFqoxYFzIwUFzYwTF9wudGCAufGB4vuF0IwNF/2JxIMKr9fF6AuP6/XGBFf1utMCIuNr4uBGBA6BFxAvXFwgwFNAWzRowvYFwwwCr+zFxgvVFxAAFFxQvUKYqHCFyIvU1q4IFyAvTFwK1BBAgwEFxovKGA+t1oiIGARoDFyovGr5QLxIuOF6QAdF5YwiFxgvwGEAuOGD4uQF+AwcFyQwbFygvYFqovYFy4vVFrAvJBBIAdEkgvOFtIvEF1YvBFtgA/AH4A2A==")), x-166, y-220 ,{scale : 2});
+       g.drawImage(require("heatshrink").decompress(atob("mEwxH+ACfXAAwcUFrAxlEpYxhEJ4xgDqDEjd9rwKF84HNAH4A/AFLpJABYv/FzwwZF/4viCkwaHCtIv/F/4v/F/4v/F/4v/F/4v/F/4v/F/4v/F/4v/F/4vlACov/F/4gGF9APXSEwuYF+AwUEJo")), x-166, y-220 ,{scale : 2});
        g.setColor("#ffffff");
        g.setFont("6x8",3);
        g.setFontAlign(0,0);
-       g.drawString(source, x-120, y-105, false);
+       g.drawString(state.notification.source, x-120, y-105, false);
 
        g.reset();
        g.setColor("#b2bec3");
        g.setFont("6x8",2);
        g.setFontAlign(0,0);
-       g.drawString(author, x-120, y-70, false);
+       g.drawString(state.notification.author, x-120, y-70, false);
        g.fillCircle(120, 220, 5);
     }
   }
@@ -236,6 +230,7 @@ function setCurrentView(view, options){
 }
 
 function render(options){
+  console.log(state);
   if(options === undefined){
     g.clear();
   } else if(options.clear === false){
@@ -251,7 +246,6 @@ function getMem(){
 function setConnectionState(){
   state.connected = !state.connected;
   Bangle.beep();
-  console.log(`Connected: ${state.connected}`);
 }
 
 //Initialise
@@ -285,9 +279,14 @@ NRF.on("disconnect", setConnectionState);
 global.GB = (event) => {
   switch (event.t) {
       case "notify":
+        Bangle.setLCDPower(true);
         Bangle.buzz()
           .then(()=>{
-            setCurrentView("NOTIFICATION", {body: event});
+            state.notification = {
+              author: event.title,
+              source: event.src
+            };
+            setCurrentView("NOTIFICATION");
           });
         break;
     }
