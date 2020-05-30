@@ -257,7 +257,6 @@ function setConnectionState(){
   if(state.connected){
     setTimeout(sendBattery, 2000);
   }
-  Bangle.beep();
 }
 
 //Initialise
