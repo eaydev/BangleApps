@@ -260,6 +260,7 @@ function setConnectionState(){
 }
 
 //Initialise
+Bangle.loadWidgets();
 setCurrentView("WATCH_FACE");
 setWatch(Bangle.showLauncher, BTN2, { repeat: false, edge: "falling" });
 //state.runningProcesses.ramwatch = setInterval(getMem ,1000);
