@@ -1,10 +1,5 @@
-// TO IMPLEMENT:
-// HRM ON ALL VIEWS - BACKGROUND PROCESS AVAILABLE TOO?
-// IMPLEMENT CHARGE ICON
-
-
-//CURRENT WIDGET LIST AVAILABLE ARE - CHARGE / STEPS / BPM
 require("Font8x12").add(Graphics);
+const storage = require("Storage");
 
 let state = {
   connected: false,
@@ -26,7 +21,7 @@ let state = {
   notification: {
     author: undefined,
     source: undefined
-  }
+  },
 };
 
 const VIEWS = [
@@ -35,16 +30,75 @@ const VIEWS = [
 ];
 
 
+//Helper functions or related to installed WIDGETS
+//Get steps.
+function getSteps(){
+  return new Promise((resolve, reject)=>{
+    let now = new Date();
+    let month = now.getMonth() + 1;
+    if (month < 10) month = "0" + month;
+    let filename = "activepedom" + now.getFullYear() + month + now.getDate() + ".data";
+    let csvFile = storage.open(filename, "r");
+
+    if(csvFile){
+      //If file exists.
+      let data = csvFile.read(csvFile.getLength()).split("\n");
+      let stepsCounted = 0;
+      let readDates = [];
+
+      for(let i = 0; i < data.length ; i++){
+          let row = data[i].split(",");
+          if (row.length === 6){
+            if(!readDates.includes(row[0])){
+              readDates.push(row[0]);
+              stepsCounted += Number(row[1]);
+            }
+          }
+      }
+      resolve(stepsCounted);
+    } else {
+      //If not yet AVAILABLE
+      resolve("COUNTING");
+    }
+  });
+}
+
+//Checking for installed Widgets
+//CURRENT WIDGET LIST AVAILABLE ARE - CHARGE / STEPS / BPM
+function checkWidgets(){
+  if(global.WIDGETS === undefined || state.watchOptions.widgets !== true){
+    console.log("Please load widgets");
+  } else {
+    //Check for 'activepedom'
+    if(!Object.keys(global.WIDGETS).includes("activepedom")){
+      //Disable pedometer on face.
+      //Create new state widgetlist without STEPS
+      let oldState = state.watchOptions.widgetList;
+      let newState = [];
+      for(let i = 0; i < oldState.length; i++){
+        if(oldState[i] !== "STEPS"){
+          newState.push(oldState[i]);
+        }
+      }
+      state.watchOptions.widgetList = newState;
+    }
+  }
+}
+
 // Widgets.
 function drawSteps(x, y, align) {
-  g.reset();
-  g.setColor('#7f8c8d');
-  g.setFont("8x12",2);
-  g.setFontAlign(align,0);
-  g.drawString("STEPS", x, y, true);
-  g.setColor('#bdc3c7');
-  g.drawString("-", x, y+25, true);
+  getSteps()
+    .then(steps=>{
+      g.reset();
+      g.setColor('#7f8c8d');
+      g.setFont("8x12",2);
+      g.setFontAlign(align,0);
+      g.drawString("STEPS", x, y, true);
+      g.setColor('#bdc3c7');
+      g.drawString(steps, x, y+25, true);
+    });
 }
+
 // Drawing BPM.
 function drawBPM(x, y, align) {
   //Reset to defaults.
@@ -83,7 +137,6 @@ function drawBattery(x, y, align) {
 function drawConnection() {
   console.log("INSERT HERE.");
 }
-
 
 // View watchface
 const WATCH_FACE = (options) =>{
@@ -239,7 +292,6 @@ function gbSend(message) {
 }
 
 function render(options){
-  console.log(state);
   if(options === undefined){
     g.clear();
   } else if(options.clear === false){
@@ -261,6 +313,7 @@ function setConnectionState(){
 
 //Initialise
 Bangle.loadWidgets();
+checkWidgets();
 setCurrentView("WATCH_FACE");
 setWatch(Bangle.showLauncher, BTN2, { repeat: false, edge: "falling" });
 //state.runningProcesses.ramwatch = setInterval(getMem ,1000);
@@ -277,7 +330,7 @@ Bangle.on('touch', function(button) {
 
 Bangle.on('lcdPower',on=>{
   if (on) {
-    render();
+    render({clear:false});
   } else {
     clearProcesses();
   }
@@ -298,7 +351,7 @@ global.GB = (event) => {
               author: event.title,
               source: event.src
             };
-            setCurrentView("NOTIFICATION");
+            setCurrentView("NOTIFICATION", {clear : false});
           });
         break;
     }
