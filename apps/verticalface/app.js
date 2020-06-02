@@ -22,6 +22,8 @@ let state = {
     author: undefined,
     source: undefined
   },
+  bluetoothAllowed : false,
+  currentHRM: undefined
 };
 
 const VIEWS = [
@@ -38,9 +40,10 @@ function getSteps(){
     let month = now.getMonth() + 1;
     if (month < 10) month = "0" + month;
     let filename = "activepedom" + now.getFullYear() + month + now.getDate() + ".data";
-    let csvFile = storage.open(filename, "r");
 
-    if(csvFile){
+    let csvFile = storage.open(filename, "r");
+    //Adding a way to delete file.
+    if(csvFile && csvFile.getLength() > 0){
       //If file exists.
       let data = csvFile.read(csvFile.getLength()).split("\n");
       let stepsCounted = 0;
@@ -58,7 +61,7 @@ function getSteps(){
       resolve(stepsCounted);
     } else {
       //If not yet AVAILABLE
-      resolve("COUNTING");
+      resolve("IN COUNT");
     }
   });
 }
@@ -114,12 +117,12 @@ function drawBPM(x, y, align) {
     g.drawString("*", x+45, y, false);
     g.setColor('#bdc3c7');
     //Showing current heartrate reading.
-    heartRate = currentHRM.toString() + "    ";
+    heartRate = state.currentHRM.toString() + "    ";
     return g.drawString(heartRate, x, y+25, true /*clear background*/);
   } else {
-    g.drawString("BPM", x, y, true /*clear background*/);
+    g.drawString("BPM    ", x, y, true /*clear background*/);
     g.setColor('#bdc3c7');
-    return g.drawString("-", x, y+25, true); //Padding
+    return g.drawString("-     ", x, y+25, true); //Padding
   }
 }
 //Drawing Battery
@@ -201,10 +204,14 @@ const WATCH_FACE = (options) =>{
       widget_x = 240 - 145;
       widget_align = 1;
     }
-
+    //Render overrides.
     if (options !== undefined){
-      return console.log("Override render.");
+      if (options.override !== undefined){
+        //Override render to render on defined widget.
+        return eval(widgets[options.override])(widget_x, wiget_y[state.watchOptions.widgetList.getIndex(options.override)], widget_align);
+      }
     }
+
 
     //Loop through our widget list and render with corresponding x and y.
     for(let i = 0; i < state.watchOptions.widgetList.length; i++){
@@ -337,8 +344,11 @@ Bangle.on('lcdPower',on=>{
 });
 
 //Bluetooth connect and d/c
-NRF.on("connect", setConnectionState);
-NRF.on("disconnect", setConnectionState);
+if(state.bluetoothAllowed === true){
+  NRF.on("connect", setConnectionState);
+  NRF.on("disconnect", setConnectionState);
+}
+
 
 //Gadgetbridge test.
 global.GB = (event) => {
@@ -356,3 +366,38 @@ global.GB = (event) => {
         break;
     }
 };
+
+
+//HRM Controller added to button 1
+setWatch(function(){
+  if(!state.runningProcesses.heartMonitor){
+      console.log("Toggled HRM");
+      //Turn on.
+      Bangle.buzz();
+      Bangle.setHRMPower(1);
+      //Render calc on render function.
+      state.currentHRM = "CALC";
+      state.runningProcesses.heartMonitor = true;
+      render("WATCH_FACE", {clear : false, override: "BPM"});
+    } else if(state.runningProcesses.heartMonitor){
+      console.log("Toggled HRM");
+      //Turn off.
+      Bangle.buzz();
+      Bangle.setHRMPower(0);
+      state.runningProcesses.heartMonitor = false;
+      state.currentHRM = undefined;
+      render("WATCH_FACE", {clear : false, override: "BPM"});
+    }
+}, BTN1, { repeat: true, edge: "falling" });
+
+Bangle.on('HRM', function(hrm) {
+  console.log(hrm);
+  if(hrm.confidence > 80){
+   /*Do more research to determine effect algorithm for heartrate average.*/
+   //re render from this.
+   state.currentHRM = hrm.bpm;
+   render("WATCH_FACE", {clear : false, override: "BPM"});
+   //drawBPM(state.runningProcesses.heartMonitor);
+  }
+});
+
