@@ -8,7 +8,7 @@ https://eaydev.github.io/BangleApps/
 
 ## Current Features
 * Watch w/ time and date
-* Battery display
+* Battery display and charge icon/action
 * Notification display from Gadgetbridge
 * Real-time heart rate monitor, no storage option for readings yet. No filtering just displaying raw data with confidence > 80
 * Active pedometer support, for step reading (\*)
@@ -21,6 +21,7 @@ https://eaydev.github.io/BangleApps/
 * Stop watch Screen
 * Custom customisation screen android app
 * Heart rate monitor storage option for readings.
+* Response to phone using Gadgetbridge.
 
 ```
 

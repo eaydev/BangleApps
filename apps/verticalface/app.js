@@ -23,7 +23,8 @@ let state = {
     source: undefined
   },
   bluetoothAllowed : false,
-  currentHRM: undefined
+  currentHRM: undefined,
+  charging: false
 };
 
 const VIEWS = [
@@ -125,6 +126,7 @@ function drawBPM(x, y, align) {
     return g.drawString("-     ", x, y+25, true); //Padding
   }
 }
+
 //Drawing Battery
 function drawBattery(x, y, align) {
   let charge = E.getBattery();
@@ -133,9 +135,15 @@ function drawBattery(x, y, align) {
   g.setFont("8x12",2);
   g.setFontAlign(align,0); // align right bottom
   g.drawString("CHARGE", x, y, true /*clear background*/);
-  g.setColor('#bdc3c7');
-  g.drawString(`${charge}%`, x, y+25, true /*clear background*/);
+  if(state.charging || Bangle.isCharging()){
+    g.setColor("#00b894");
+  }
+  g.drawString(`${charge}%   `, x, y+25, true /*clear background*/);
+  if(state.charging || Bangle.isCharging()){
+    g.drawImage(require("heatshrink").decompress(atob("jEYxH+ABXMAAgRLC8Qu/F15GcFy4bRCxAXXMNIYEC1IXbC1QXaC1YXZC0wA=")), x+40, y+15, {scale: 0.8});
+  }
 }
+
 //Drawing Bluetooth
 function drawConnection() {
   console.log("INSERT HERE.");
@@ -207,8 +215,11 @@ const WATCH_FACE = (options) =>{
     //Render overrides.
     if (options !== undefined){
       if (options.override !== undefined){
+        if(state.runningProcesses.clock === undefined){
+          state.runningProcesses.clock = setInterval(drawTimeDate, 15000);
+        }
         //Override render to render on defined widget.
-        return eval(widgets[options.override])(widget_x, wiget_y[state.watchOptions.widgetList.getIndex(options.override)], widget_align);
+        return eval(widgets[options.override])(widget_x, widget_y[state.watchOptions.widgetList.indexOf(options.override)], widget_align);
       }
     }
 
@@ -321,6 +332,7 @@ function setConnectionState(){
 //Initialise
 Bangle.loadWidgets();
 checkWidgets();
+state.charging = Bangle.isCharging();
 setCurrentView("WATCH_FACE");
 setWatch(Bangle.showLauncher, BTN2, { repeat: false, edge: "falling" });
 //state.runningProcesses.ramwatch = setInterval(getMem ,1000);
@@ -367,6 +379,31 @@ global.GB = (event) => {
     }
 };
 
+//Charge state controller.
+Bangle.on('charging', (charging) => {
+  if(charging){
+    Bangle.buzz().then(()=>{
+      state.charging = true;
+      if(Bangle.isLCDOn()){
+      render({clear : false, override: "CHARGE"});
+      } else {
+        Bangle.setLCDPower(true);
+      }
+    });
+  } else {
+    if(state.charging){
+      Bangle.buzz().then(()=>{
+        state.charging = false;
+        if(Bangle.isLCDOn()){
+        render({clear : false, override: "CHARGE"});
+        } else {
+          Bangle.setLCDPower(true);
+        }
+      });
+    }
+  }
+});
+
 
 //HRM Controller added to button 1
 setWatch(function(){
@@ -378,7 +415,7 @@ setWatch(function(){
       //Render calc on render function.
       state.currentHRM = "CALC";
       state.runningProcesses.heartMonitor = true;
-      render("WATCH_FACE", {clear : false, override: "BPM"});
+      render({clear : false, override: "BPM"});
     } else if(state.runningProcesses.heartMonitor){
       console.log("Toggled HRM");
       //Turn off.
@@ -386,7 +423,7 @@ setWatch(function(){
       Bangle.setHRMPower(0);
       state.runningProcesses.heartMonitor = false;
       state.currentHRM = undefined;
-      render("WATCH_FACE", {clear : false, override: "BPM"});
+      render({clear : false, override: "BPM"});
     }
 }, BTN1, { repeat: true, edge: "falling" });
 
@@ -396,8 +433,7 @@ Bangle.on('HRM', function(hrm) {
    /*Do more research to determine effect algorithm for heartrate average.*/
    //re render from this.
    state.currentHRM = hrm.bpm;
-   render("WATCH_FACE", {clear : false, override: "BPM"});
+   render({clear : false, override: "BPM"});
    //drawBPM(state.runningProcesses.heartMonitor);
   }
 });
-
