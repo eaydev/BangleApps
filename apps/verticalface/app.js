@@ -3,12 +3,12 @@ const storage = require("Storage");
 
 let state = {
   connected: false,
-  theme: "#fbc531",
+  theme: "#2ecc71",
   currentView: "WATCH_FACE",
   watchOptions: {
     widgets: true,
     align: "left",
-    widgetList: ["CHARGE", "STEPS", "BPM"]
+    widgetList: ["CHARGE", "STEPS", "BPM", "BLUETOOTH"]
   },
   runningProcesses: {
     clock: undefined,
@@ -22,7 +22,7 @@ let state = {
     author: undefined,
     source: undefined
   },
-  bluetoothAllowed : false,
+  bluetoothAllowed : true,
   currentHRM: undefined,
   charging: false
 };
@@ -145,8 +145,12 @@ function drawBattery(x, y, align) {
 }
 
 //Drawing Bluetooth
-function drawConnection() {
-  console.log("INSERT HERE.");
+function drawConnection(x, y, align) {
+  if(!state.connected){
+    g.drawImage(require("heatshrink").decompress(atob("jEYxH+ABU7BhYXLDCwXBDCoXCDCgXDDCYUCDB4OEAgYYOBwgDDr4wQIgaSSOgh3TCyy+daq5eXRybvVa6oNEDY5iRd6R6HVKrXTLagXECyoXNA==")), x-7, y-5, {scale: 0.9});
+  } else if(state.connected){
+    g.drawImage(require("heatshrink").decompress(atob("jEYxH+ABWsBhYXLDCwXBDCoXCDCgXDDCYUCDB4OEAgYYOBwgXSB4hHSOgx3TCyy+daq5eXRybvVa6oNEDY5iRd6R6HVKrXTLagXECyoXNA==")), x-7, y-5, {scale: 0.9});
+  }
 }
 
 // View watchface
@@ -178,7 +182,7 @@ const WATCH_FACE = (options) =>{
     let daysOfWeek = ["MON", "TUE","WED","THU","FRI","SAT","SUN"];
     let hours = ("0"+h).substr(-2);
     let mins= ("0"+m).substr(-2);
-    let date = `${daysOfWeek[weekDay]}|${day}|${("0"+(month+1)).substr(-2)}`;
+    let date = `${daysOfWeek[weekDay]}|${("0"+(day)).substr(-2)}|${("0"+(month+1)).substr(-2)}`;
     // Reset the state of the graphics library
     g.reset();
     // Set color --------- WILL BECOME CUSTOMISABLE.
@@ -327,6 +331,7 @@ function setConnectionState(){
   if(state.connected){
     setTimeout(sendBattery, 2000);
   }
+  render({clear : false, override: "BLUETOOTH"});
 }
 
 //Initialise

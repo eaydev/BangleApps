@@ -11,6 +11,7 @@ https://eaydev.github.io/BangleApps/
 * Battery display and charge icon/action
 * Notification display from Gadgetbridge
 * Real-time heart rate monitor, no storage option for readings yet. No filtering just displaying raw data with confidence > 80
+* Show connection state.
 * Active pedometer support, for step reading (\*)
 
 
@@ -27,4 +28,4 @@ https://eaydev.github.io/BangleApps/
 
 ## (\*) Note:
 ### Pedometer
-The pedometer is reliant on the ['activepedom' app by Purple-tentacle](https://github.com/espruino/BangleApps/tree/master/apps/activepedom), without which the pedometer will be deactivated by default and won't be drawn. At the moment we are working out some bugs found with this.
+The pedometer is currently reliant on the ['activepedom' app by Purple-tentacle](https://github.com/espruino/BangleApps/tree/master/apps/activepedom), without which the pedometer will be deactivated by default and won't be drawn. At the moment I have discovered some issues working with this app and am working on an 'arm swing' based pedometer for the watch.
