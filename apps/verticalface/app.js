@@ -245,26 +245,51 @@ const WATCH_FACE = (options) =>{
 
 //Notification watch face
 const NOTIFICATION = () =>{
-
   function drawNotification(x, y){
-    g.setColor("#000000");
-    g.fillRect(0, 0, x, 240);
     if(x >= 240){
-       g.drawImage(require("heatshrink").decompress(atob("mEwxH+ACfXAAwcUFrAxlEpYxhEJ4xgDqDEjd9rwKF84HNAH4A/AFLpJABYv/FzwwZF/4viCkwaHCtIv/F/4v/F/4v/F/4v/F/4v/F/4v/F/4v/F/4v/F/4vlACov/F/4gGF9APXSEwuYF+AwUEJo")), x-166, y-220 ,{scale : 2});
-       g.setColor("#ffffff");
-       g.setFont("6x8",3);
-       g.setFontAlign(0,0);
-       g.drawString(state.notification.source, x-120, y-105, false);
+      g.reset();
+      let str = state.notification.body;
+      let chunkedStr = [];
 
-       g.reset();
-       g.setColor("#b2bec3");
-       g.setFont("6x8",2);
-       g.setFontAlign(0,0);
-       g.drawString(state.notification.author, x-120, y-70, false);
-       g.fillCircle(120, 220, 5);
+      //Splitting the str.
+      if(str.length > 19){
+       let newStr = "";
+       for(let i = 0; i <str.length; i++){
+         newStr += str[i];
+         if(newStr.length === 19){
+           chunkedStr.push(newStr);
+           newStr = "";
+         }
+         if(i === str.length -1){
+           chunkedStr.push(newStr);
+         }
+       }
+      } else {
+       chunkedStr.push(str);
+      }
+      g.clear();
+      g.setFont("6x8",2);
+      g.drawImage(require("heatshrink").decompress(atob("mEwxH+ACU6ABAdTFjAyiFh4yeFyoxXFrAwVFzYwSFzowQFz4wOF0IwMECterwwWEptdwIIFw/P5+rGCotLz3BAAIuHAAJhNFyNdFgOBrokEFwnPMZxdQ4OeFgK2BAAWrFofO5wzEGBwOKvXBFIJXEFQPIFYPIAYQvd4WenRYEGAfC4PCFwjDMFxs6XgM6FwwwC4PIAwfI0pgOXxeedYIvIMIQwBAYOkSJpfNAAOBFQqJEMIXBFwfP1YvKFxq+GE4KLEYQIuE5+CEhwvQ5274JhCL4PCBoi/LF7BhBMgPB5/XRoYxbF4/IRYIAC6HXGAIRErwvgeYTFC6AGBCAgvXrwdEd4IvCX4YAC5/WSQYudF4RWEMITCCYYQueLAQ4HSQSTBRqwuHRww5G4XIFz4kCcooLD4XCFxv+FyHPFxQACFwOBFxYvInWHRxCNHFw3BGBQvKGBIuOzxfMGDerCYIuQF5QwMw+HwTpCzwuMF54wKFYRcC4XBvU6rueBYgvIGCgiCwJbBLgNdSAXCF5AuEGCYhDF4N6FoJcBSBQuGF5gwEQBOe4WBXpowTFxM6BRQuJGBwAWFxQwjFxgwhFxwwfFyAwdFyQxbFyowXFq4yUFjgyPDiQA==")), 15, 15);
+      g.drawString(state.notification.author, 75 , 30);
+      //Loop through array
+      let y = 80;
+      g.setFont("6x8",2);
+      if (chunkedStr.length >= 6){
+       while(chunkedStr.length > 6){
+         chunkedStr.pop();
+       }
+       chunkedStr.push("...");
+      }
+
+      for(let h = 0; h<chunkedStr.length; h++){
+       g.drawString(chunkedStr[h], 0 , y);
+       y += 20;
+      }
+      g.setFont("6x8",1.5);
+      g.setFontAlign(1, 0);
+      g.drawString("Dismiss", 240, 220);
     }
   }
-
 
   state.runningProcesses.notification = setInterval(()=>{
     if(state.notifWidth > 240){
@@ -352,6 +377,16 @@ Bangle.on('touch', function(button) {
   }
 });
 
+setWatch(function(button) {
+  if(Bangle.isLCDOn()){
+    if(state.runningProcesses.notification === undefined){
+      console.log("Not running");
+    } else {
+      setCurrentView("WATCH_FACE");
+    }
+  }
+}, BTN3, { repeat: true, edge: "falling" });
+
 Bangle.on('lcdPower',on=>{
   if (on) {
     render({clear:false});
@@ -374,9 +409,11 @@ global.GB = (event) => {
         Bangle.setLCDPower(true);
         Bangle.buzz()
           .then(()=>{
+            let file = require("Storage").open("notif", "a");
+            file.write(`${JSON.stringify(event)}\n`);
             state.notification = {
               author: event.title,
-              source: event.src
+              body: event.body
             };
             setCurrentView("NOTIFICATION", {clear : false});
           });
